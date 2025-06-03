@@ -1,0 +1,16 @@
+modal
+torch
+torchvision
+diffusers
+transformers
+accelerate
+pillow
+opencv-python
+numpy
+cupy-cuda12x
+cuml-cu12
+scour
+cairosvg
+fastapi
+uvicorn
+kagglehub

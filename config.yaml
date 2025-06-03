@@ -1,0 +1,6 @@
+models:
+    - google/paligemma2-10b-mix-448
+    - ttj/sac-logos-ava1-l14-linearMSE
+    - openai/clip-vit-large-patch14
+    - sd-community/sdxl-flash
+    - google/siglip-so400m-patch14-384
