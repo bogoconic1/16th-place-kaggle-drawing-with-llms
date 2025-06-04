@@ -39,9 +39,9 @@ image = (
         "sentencepiece",
         "more_itertools",
     ])
-    .add_local_file(Path(__file__).parent / "config.yaml", "/root/config.yaml")
-    .add_local_file(Path(__file__).parent / "svg_generator.py", "/root/svg_generator.py")
-    .add_local_file(Path(__file__).parent / "metric.py", "/root/metric.py")
+    .add_local_file(Path(__file__).parent / "conf/config.yaml", "/root/config.yaml")
+    .add_local_file(Path(__file__).parent / "code/svg_generator.py", "/root/svg_generator.py")
+    .add_local_file(Path(__file__).parent / "code/metric.py", "/root/metric.py")
 )
 
 models_volume = Volume.from_name("drawing-with-llms", create_if_missing=True)
@@ -102,8 +102,7 @@ def run():
     
     # Create Gradio interface
     with gr.Blocks(title="Text-to-SVG Generator") as demo:
-        gr.Markdown("# Text-to-SVG Generator using the 16th place solution approach")
-        gr.Markdown("This app generates 10 SVG attempts, scores them with aesthetic * SigLIP, evaluates the top 5 with VQA, and returns the image with the highest harmonic mean.")
+        gr.Markdown("# 16th place solution for Kaggle's Drawing with LLMs competition")
         
         with gr.Row():
             with gr.Column():
