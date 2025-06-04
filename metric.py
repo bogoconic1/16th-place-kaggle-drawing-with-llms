@@ -483,6 +483,23 @@ class AestheticEvaluator:
 # make global
 aesthetic_evaluator = AestheticEvaluator()
 
+def harmonic_mean(a: float, b: float, beta: float = 1.0) -> float:
+    """
+    Calculate the harmonic mean of two values, weighted using a beta parameter.
+
+    Args:
+        a: First value (e.g., precision)
+        b: Second value (e.g., recall)
+        beta: Weighting parameter
+
+    Returns:
+        Weighted harmonic mean
+    """
+    # Handle zero values to prevent division by zero
+    if a <= 0 or b <= 0:
+        return 0.0
+    return (1 + beta**2) * (a * b) / (beta**2 * a + b)
+
 class ImageProcessor:
     def __init__(self, image: Image.Image, seed=None):
         """Initialize with either a path to an image or a PIL Image object."""

@@ -14,14 +14,14 @@ image = (
     .pip_install_private_repos(
         "github.com/bogoconic1/CLIP",
         git_user='bogoconic1',
-        secrets=[modal.Secret.from_name("github-secret")],
+        secrets=[modal.Secret.from_name("github-secret-2")],
     )
     .pip_install([
         "torch",
         "torchvision", 
         "diffusers",
         "scikit-image",
-        "transformers",
+        "transformers==4.52.4",
         "accelerate",
         "bitsandbytes",
         "pillow",
@@ -34,27 +34,33 @@ image = (
         "fastapi",
         "uvicorn",
         "python-multipart",
-        "streamlit",
+        "gradio",
         "matplotlib",
-        "more_itertools",
         "sentencepiece",
+        "more_itertools",
     ])
     .add_local_file(Path(__file__).parent / "config.yaml", "/root/config.yaml")
-    .add_local_file(Path(__file__).parent / "app.py", "/root/app.py")
-    .add_local_file(Path(__file__).parent / "metric.py", "/root/metric.py")
     .add_local_file(Path(__file__).parent / "svg_generator.py", "/root/svg_generator.py")
+    .add_local_file(Path(__file__).parent / "metric.py", "/root/metric.py")
 )
 
 models_volume = Volume.from_name("drawing-with-llms", create_if_missing=True)
-app = App("text-to-svg-generator-streamlit", image=image)
+app = App("text-to-svg-generator", image=image)
 
 @app.function(
     image=image, 
     volumes={"/root/cache": models_volume},
     secrets=[modal.Secret.from_name("huggingface-secret")],
-    gpu="A100-40GB"
+    gpu="A100-40GB",
+    min_containers=1,
+    scaledown_window=60 * 20,
+    # gradio requires sticky sessions
+    # so we limit the number of concurrent containers to 1
+    # and allow it to scale to 100 concurrent inputs
+    max_containers=1,
 )
-@modal.web_server(8000)
+@modal.concurrent(max_inputs=100)
+@modal.asgi_app()
 def run():
     # Check if model exists in cache, if not download it
     with open("config.yaml", "r") as f:
@@ -70,7 +76,61 @@ def run():
             )
             print("Model downloaded successfully!")
     
-    target = shlex.quote("/root/app.py")
-    cmd = f"streamlit run {target} --server.port 8000 --server.enableCORS=false --server.enableXsrfProtection=false"
-    subprocess.Popen(cmd, shell=True)
+    import gradio as gr
+    from gradio.routes import mount_gradio_app
+    import numpy as np
+    from PIL import Image
+    import base64
+    from io import BytesIO
+    from svg_generator import generate_svg, svg_to_png
+    from fastapi import FastAPI
+    
+    def generate_svg_interface(prompt):
+        if not prompt.strip():
+            return None, None, "⚠️ Please enter a prompt to generate an SVG."
+        
+        try:
+            # Generate SVG and bitmap
+            svg_content, bitmap_image = generate_svg(prompt.strip())
+            svg_png = svg_to_png(svg_content)
+            
+            return bitmap_image, svg_png, svg_content
+            
+        except Exception as e:
+            error_msg = f"❌ An error occurred: {str(e)}\nPlease try again with a different prompt or check the logs for more details."
+            return None, None, error_msg
+    
+    # Create Gradio interface
+    with gr.Blocks(title="Text-to-SVG Generator") as demo:
+        gr.Markdown("# Text-to-SVG Generator using the 16th place solution approach")
+        gr.Markdown("This app generates 10 SVG attempts, scores them with aesthetic * SigLIP, evaluates the top 5 with VQA, and returns the image with the highest harmonic mean.")
+        
+        with gr.Row():
+            with gr.Column():
+                prompt_input = gr.Textbox(
+                    label="Enter your prompt:",
+                    placeholder="Describe what you want to generate as an SVG image",
+                    value="a purple forest at dusk"
+                )
+                generate_btn = gr.Button("🚀 Generate SVG", variant="primary")
+        
+        with gr.Row():
+            with gr.Column():
+                gr.Markdown("### 📱 Original Bitmap")
+                bitmap_output = gr.Image(label="Generated bitmap image")
+            
+            with gr.Column():
+                gr.Markdown("### 🖼️ Final SVG (Best Result)")
+                svg_output = gr.Image(label="SVG converted to PNG for display")
+        
+        with gr.Row():
+            svg_code_output = gr.Code(label="📄 SVG Code", language="markdown")
+        
+        generate_btn.click(
+            fn=generate_svg_interface,
+            inputs=[prompt_input],
+            outputs=[bitmap_output, svg_output, svg_code_output]
+        )
+
+    return mount_gradio_app(app=FastAPI(), blocks=demo, path="/")
 
