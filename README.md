@@ -9,7 +9,7 @@ Editorial: https://www.kaggle.com/competitions/drawing-with-llms/discussion/5810
 
 In addition, we also deployed our pipeline onto [Modal](https://modal.com/), utilizing FastAPI and Gradio.
 
-Link to access the app: [https://geremieyeo--text-to-svg-generator-run-dev.modal.run//](https://geremieyeo--text-to-svg-generator-run.modal.run//)
+Link to access the app: [https://geremieyeo--text-to-svg-generator-run.modal.run//](https://geremieyeo--text-to-svg-generator-run.modal.run//)
 
 ## Directory Structure
 

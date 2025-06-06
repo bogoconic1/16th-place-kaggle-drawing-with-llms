@@ -21,7 +21,7 @@ image = (
         "torchvision", 
         "diffusers",
         "scikit-image",
-        "transformers==4.52.4",
+        "transformers",
         "accelerate",
         "bitsandbytes",
         "pillow",
@@ -52,11 +52,8 @@ app = App("text-to-svg-generator", image=image)
     volumes={"/root/cache": models_volume},
     secrets=[modal.Secret.from_name("huggingface-secret")],
     gpu="A100-40GB",
-    min_containers=1,
-    scaledown_window=60 * 20,
-    # gradio requires sticky sessions
-    # so we limit the number of concurrent containers to 1
-    # and allow it to scale to 100 concurrent inputs
+    min_containers=0, # the deployment can continue with 0 containers (in a period with no users, I won't be charged)
+    scaledown_window=15*60, # if the app is idle for >= 15 minutes, the container will be stopped to save costs
     max_containers=1,
 )
 @modal.concurrent(max_inputs=100)
